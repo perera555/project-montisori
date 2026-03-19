@@ -1,15 +1,29 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
-const announcementSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true },
-    message: { type: String, required: true },
-    date: {
-      type: Date,
-      default: Date.now,
+const announcementSchema = mongoose.Schema({
+
+    title:{
+        type:String,
+        required:true
     },
-  },
-  { timestamps: true }
-);
 
-export default mongoose.model("Announcement", announcementSchema);
+    message:{
+        type:String,
+        required:true
+    },
+
+    date:{
+        type:Date,
+        default:Date.now
+    },
+
+    createdBy:{
+        type:String,
+        default:"Admin"
+    }
+
+})
+
+const Announcement = mongoose.model("Announcements",announcementSchema)
+
+export default Announcement
