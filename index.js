@@ -1,66 +1,79 @@
-import express from "express"
-import mongoose from "mongoose"
-import jwt from "jsonwebtoken"
-import dotenv from "dotenv"
-import cors from "cors"
+import express from "express";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import cors from "cors";
 
-import studentsRouter from "./routers/studentRouter.js"
-import teachersRouter from "./routers/teacherRouter.js"
-import galleritemsRouter from "./routers/gallaryRouter.js"
-import announcementsRouter from "./routers/announcementRouter.js"
-import userRouter from "./routers/userRouter.js"
+import studentsRouter from "./routers/studentRouter.js";
+import teachersRouter from "./routers/teacherRouter.js";
+import galleritemsRouter from "./routers/gallaryRouter.js";
+import announcementsRouter from "./routers/announcementRouter.js";
+import userRouter from "./routers/userRouter.js";
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
+const app = express();
 
-// ✅ Middleware
-app.use(express.json())
+/* ================= MIDDLEWARE ================= */
 
-// ✅ FIX: Enable CORS (VERY IMPORTANT)
+// ✅ Parse JSON
+app.use(express.json());
+
+// ✅ CORS (frontend connection)
 app.use(cors({
   origin: "http://localhost:5173",
   credentials: true
-}))
+}));
 
-// ✅ JWT middleware
+/* ================= JWT MIDDLEWARE ================= */
+
 app.use((req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", "")
+  const token = req.header("Authorization")?.replace("Bearer ", "");
 
-  if (token) {
-    jwt.verify(token, "secret", (err, decoded) => {
-      if (decoded) {
-        req.user = decoded
-      }
-      next()
-    })
-  } else {
-    next()
+  // ✅ No token → continue
+  if (!token) return next();
+
+  try {
+    // ✅ FIXED: use env secret
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;
+  } catch (err) {
+    console.log("JWT ERROR:", err.message);
   }
-})
 
-// ✅ MongoDB connection
-const connectionString = process.env.MONGO_URL
+  next();
+});
 
-console.log("Mongo URL:", connectionString)
+/* ================= DATABASE ================= */
+
+const connectionString = process.env.MONGO_URL;
+
+if (!connectionString) {
+  console.log("❌ MONGO_URL not found in .env");
+  process.exit(1);
+}
 
 mongoose.connect(connectionString)
   .then(() => {
-    console.log("Connected to the Database")
+    console.log("✅ Connected to MongoDB");
   })
   .catch((error) => {
-    console.log(error)
-    console.log("Connection Failed")
-  })
+    console.log("❌ MongoDB Error:", error.message);
+  });
 
-// ✅ Routes
+/* ================= ROUTES ================= */
+
 app.use("/api/users", userRouter);
-app.use("/api/students", studentsRouter)
-app.use("/api/teachers", teachersRouter)
-app.use("/api/gallery", galleritemsRouter)
-app.use("/api/announcements", announcementsRouter)
+app.use("/api/students", studentsRouter);
+app.use("/api/teachers", teachersRouter);
+app.use("/api/gallery", galleritemsRouter);
+app.use("/api/announcements", announcementsRouter);
 
-// ✅ Start server
-app.listen(5000, () => {
-  console.log("Server Running on Port 5000")
-})
+/* ================= SERVER ================= */
+
+const PORT = 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});

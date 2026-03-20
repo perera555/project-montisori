@@ -1,11 +1,16 @@
-import express from "express"
-import { getGalleryItems, saveGalleryItem } from "../controllers/galleryController.js"
+import express from "express";
+import {
+  getGalleryItems,
+  saveGalleryItem,
+  deleteGalleryImage,
+} from "../controllers/galleryController.js";
+import { auth } from "../auth.js";
+import { adminAuth } from "../adminAuth.js";
 
+const router = express.Router();
 
-const galleritemsRouter = express.Router()
+router.get("/", getGalleryItems);
+router.post("/", saveGalleryItem);
+router.delete("/image", auth, adminAuth, deleteGalleryImage);
 
-galleritemsRouter.get("/",getGalleryItems)
-
-galleritemsRouter.post("/",saveGalleryItem)
-
-export default galleritemsRouter
+export default router;

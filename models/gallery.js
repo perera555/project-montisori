@@ -1,24 +1,27 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const gallerySchema = mongoose.Schema({
+const imageSchema = new mongoose.Schema({
+  url: String,
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-    year:{
-        type:Number,
-        required:true
-    },
+const gallerySchema = new mongoose.Schema({
+  year: { type: Number, required: true },
+  month: { type: String, required: true },
 
-    month:{
-        type:String,
-        required:true
-    },
+  activityImages: {
+    type: [imageSchema],
+    default: [],
+  },
 
-    images:{
-        type:[String],
-        required:true
-    }
+  conversationImages: {
+    type: [imageSchema],
+    default: [],
+  },
+});
 
-})
-
-const GalleryItem = mongoose.model("GalleryItems", gallerySchema)
-
-export default GalleryItem
+const GalleryItem = mongoose.model("GalleryItems", gallerySchema);
+export default GalleryItem;

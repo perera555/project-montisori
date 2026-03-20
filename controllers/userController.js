@@ -10,7 +10,7 @@ import getDesignEmail from "../emailDesginer.js";
 
 dotenv.config();
 
-/* ================= CONFIG ================= */
+/* ================= EMAIL CONFIG ================= */
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -23,8 +23,6 @@ const transporter = nodemailer.createTransport({
 /* ================= CREATE USER ================= */
 export async function createUser(req, res) {
   try {
-    console.log("BODY:", req.body);
-
     const { email, firstName, lastName, password } = req.body;
 
     if (!email || !firstName || !lastName || !password) {
@@ -46,18 +44,17 @@ export async function createUser(req, res) {
       role: "user",
     });
 
+    // ❌ REMOVE PASSWORD FROM RESPONSE
+    user.password = undefined;
+
     res.status(201).json({
-      message: "✅ User created",
+      message: "User created",
       user,
     });
 
   } catch (err) {
     console.error("CREATE ERROR:", err);
-
-    res.status(500).json({
-      message: "Error creating user",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Server error" });
   }
 }
 
@@ -66,18 +63,25 @@ export async function loginUser(req, res) {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email & password required" });
+    }
+
     const user = await User.findOne({ email });
 
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
 
-    if (user.isblocked)
+    if (user.isblocked) {
       return res.status(403).json({ message: "User blocked" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
 
-    if (!match)
+    if (!match) {
       return res.status(401).json({ message: "Wrong password" });
+    }
 
     const token = jwt.sign(
       { email: user.email, role: user.role },
@@ -85,15 +89,18 @@ export async function loginUser(req, res) {
       { expiresIn: "7d" }
     );
 
+    // ❌ REMOVE PASSWORD
+    user.password = undefined;
+
     res.json({
-      message: "✅ Login success",
+      message: "Login success",
       token,
       user,
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
@@ -125,50 +132,66 @@ export async function googleLogin(req, res) {
     }
 
     const jwtToken = jwt.sign(
-      { email: user.email },
-      process.env.JWT_SECRET
+      { email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
     );
+
+    user.password = undefined;
 
     res.json({ token: jwtToken, user });
 
   } catch (err) {
-    console.error(err);
+    console.error("GOOGLE LOGIN ERROR:", err);
     res.status(401).json({ message: "Google login failed" });
   }
 }
 
 /* ================= USERS ================= */
 export async function getUsers(req, res) {
-  const users = await User.find();
-  res.json(users);
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
 export function getUser(req, res) {
-  if (!req.user)
+  if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
+  }
 
   res.json(req.user);
 }
 
 /* ================= ADMIN ================= */
 export async function getAllUsers(req, res) {
-  const users = await User.find();
-  res.json(users);
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
 export async function blockOrUnblockUser(req, res) {
-  await User.updateOne(
-    { email: req.params.email },
-    { isblocked: req.body.isblocked }
-  );
+  try {
+    await User.updateOne(
+      { email: req.params.email },
+      { isblocked: req.body.isblocked }
+    );
 
-  res.json({ message: "Updated" });
+    res.json({ message: "Updated" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
 /* ================= OTP ================= */
 export async function sentOTP(req, res) {
   try {
-    const email = req.body.email;
+    const { email } = req.body;
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -188,8 +211,8 @@ export async function sentOTP(req, res) {
     res.json({ message: "OTP sent" });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("OTP ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
@@ -200,8 +223,9 @@ export async function changePasswordViaOTP(req, res) {
 
     const record = await OTP.findOne({ email });
 
-    if (!record || record.otp !== otp)
+    if (!record || record.otp !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
+    }
 
     const hashedpassword = await bcrypt.hash(newPassword, 10);
 
@@ -215,28 +239,42 @@ export async function changePasswordViaOTP(req, res) {
     res.json({ message: "Password updated" });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("RESET ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
 /* ================= PROFILE ================= */
 export async function updateuserData(req, res) {
-  await User.updateOne(
-    { email: req.user.email },
-    req.body
-  );
+  try {
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-  res.json({ message: "Profile updated" });
+    await User.updateOne(
+      { email: req.user.email },
+      req.body
+    );
+
+    res.json({ message: "Profile updated" });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
 export async function updatePassword(req, res) {
-  const hashed = await bcrypt.hash(req.body.password, 10);
+  try {
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-  await User.updateOne(
-    { email: req.user.email },
-    { password: hashed }
-  );
+    const hashed = await bcrypt.hash(req.body.password, 10);
 
-  res.json({ message: "Password updated" });
+    await User.updateOne(
+      { email: req.user.email },
+      { password: hashed }
+    );
+
+    res.json({ message: "Password updated" });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 }
