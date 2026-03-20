@@ -1,13 +1,19 @@
-import express from "express"
-import { getStudents, saveStudent, updateStudent } from "../controllers/studentController.js"
+import express from "express";
+import {
+  getStudents,
+  getStudentById,
+  createStudent,
+  updateStudent,
+  deleteStudent
+} from "../controllers/studentController.js";
 
+const router = express.Router();
 
-const studentsRouter = express.Router()
+// ROUTES
+router.get("/", getStudents);
+router.get("/:id", getStudentById); // 🔥 IMPORTANT
+router.post("/", createStudent);
+router.put("/:id", updateStudent); // 🔥 FIXED
+router.delete("/:id", deleteStudent);
 
-studentsRouter.get("/",getStudents)
-
-studentsRouter.post("/",saveStudent)
-
-studentsRouter.put("/",updateStudent)
-
-export default studentsRouter
+export default router;

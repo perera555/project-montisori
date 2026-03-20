@@ -1,10 +1,18 @@
-import express from "express"
-import { getTeachers, saveTeacher } from "../controllers/teacherController.js"
+import express from "express";
+import {
+  getTeachers,
+  saveTeacher,
+  getTeacherById,
+  updateTeacher,
+  deleteTeacher,
+} from "../controllers/teacherController.js";
 
-const teachersRouter = express.Router()
+const router = express.Router();
 
-teachersRouter.get("/",getTeachers)
+router.get("/", getTeachers);
+router.get("/:id", getTeacherById);
+router.post("/", saveTeacher);
+router.put("/:id", updateTeacher);
+router.delete("/:id", deleteTeacher);
 
-teachersRouter.post("/",saveTeacher)
-
-export default teachersRouter
+export default router;

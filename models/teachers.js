@@ -1,24 +1,20 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const teacherSchema = mongoose.Schema({
+const teacherSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  experience: {
+    type: String,
+    required: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+  },
+});
 
-    name:{
-        type:String,
-        required:true
-    },
+const Teacher = mongoose.model("Teachers", teacherSchema);
 
-    experience:{
-        type:String,
-        required:true
-    },
-
-    phone:{
-        type:String,
-        required:true
-    }
-
-})
-
-const Teacher = mongoose.model("Teachers", teacherSchema)
-
-export default Teacher
+export default Teacher;
