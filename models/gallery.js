@@ -2,6 +2,17 @@ import mongoose from "mongoose";
 
 const imageSchema = new mongoose.Schema({
   url: String,
+
+  // ✅ NEW FIELDS (added only)
+  title: {
+    type: String,
+    default: "",
+  },
+  description: {
+    type: String,
+    default: "",
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

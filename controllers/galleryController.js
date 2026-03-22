@@ -19,12 +19,25 @@ export async function saveGalleryItem(req, res) {
       return res.status(400).json({ error: "Year and month required" });
     }
 
+    // ✅ UPDATED (supports title + description + old format)
     const formatImages = (imgs = []) =>
-      imgs.map((img) =>
-        typeof img === "string"
-          ? { url: img, createdAt: new Date() }
-          : img
-      );
+      imgs.map((img) => {
+        if (typeof img === "string") {
+          return {
+            url: img,
+            title: "",
+            description: "",
+            createdAt: new Date(),
+          };
+        }
+
+        return {
+          url: img.url,
+          title: img.title || "",
+          description: img.description || "",
+          createdAt: img.createdAt || new Date(),
+        };
+      });
 
     let gallery = await GalleryItem.findOne({ year, month });
 
