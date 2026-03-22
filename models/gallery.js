@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const imageSchema = new mongoose.Schema({
   url: String,
 
-  // ✅ NEW FIELDS (added only)
+  // ✅ ADDED
   title: {
     type: String,
     default: "",

@@ -19,37 +19,59 @@ export async function saveGalleryItem(req, res) {
       return res.status(400).json({ error: "Year and month required" });
     }
 
-    // ✅ UPDATED (supports title + description + old format)
+    // ✅ STRONG FORMAT FIX
     const formatImages = (imgs = []) =>
-      imgs.map((img) => {
-        if (typeof img === "string") {
-          return {
-            url: img,
-            title: "",
-            description: "",
-            createdAt: new Date(),
-          };
-        }
+      imgs
+        .filter((img) => img) // remove null/undefined
+        .map((img) => {
+          // old format (string)
+          if (typeof img === "string") {
+            return {
+              url: img,
+              title: "",
+              description: "",
+              createdAt: new Date(),
+            };
+          }
 
-        return {
-          url: img.url,
-          title: img.title || "",
-          description: img.description || "",
-          createdAt: img.createdAt || new Date(),
-        };
-      });
+          // ❗ IMPORTANT: ensure url exists
+          if (!img.url) {
+            console.warn("Skipping invalid image:", img);
+            return null;
+          }
+
+          return {
+            url: img.url,
+            title: img.title ? String(img.title) : "",
+            description: img.description
+              ? String(img.description)
+              : "",
+            createdAt: img.createdAt
+              ? new Date(img.createdAt)
+              : new Date(),
+          };
+        })
+        .filter(Boolean); // remove nulls
+
+    // 🔍 DEBUG (you can remove later)
+    console.log("Incoming activityImages:", activityImages);
+    console.log("Incoming conversationImages:", conversationImages);
 
     let gallery = await GalleryItem.findOne({ year, month });
 
     if (gallery) {
-      gallery.activityImages = formatImages(activityImages);
-      gallery.conversationImages = formatImages(conversationImages);
+      gallery.activityImages = formatImages(activityImages || []);
+      gallery.conversationImages = formatImages(
+        conversationImages || []
+      );
     } else {
       gallery = new GalleryItem({
         year,
         month,
-        activityImages: formatImages(activityImages),
-        conversationImages: formatImages(conversationImages),
+        activityImages: formatImages(activityImages || []),
+        conversationImages: formatImages(
+          conversationImages || []
+        ),
       });
     }
 
@@ -57,6 +79,7 @@ export async function saveGalleryItem(req, res) {
 
     res.json({ message: "Saved successfully ✅" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Save failed ❌" });
   }
 }
