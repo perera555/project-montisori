@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 const imageSchema = new mongoose.Schema({
   url: String,
 
-  // ✅ ADDED
   title: {
     type: String,
     default: "",
@@ -19,20 +18,24 @@ const imageSchema = new mongoose.Schema({
   },
 });
 
-const gallerySchema = new mongoose.Schema({
-  year: { type: Number, required: true },
-  month: { type: String, required: true },
+const gallerySchema = new mongoose.Schema(
+  {
+    year: { type: Number, required: true },
+    month: { type: String, required: true },
 
-  activityImages: {
-    type: [imageSchema],
-    default: [],
-  },
+    activityImages: {
+      type: [imageSchema],
+      default: [],
+    },
 
-  conversationImages: {
-    type: [imageSchema],
-    default: [],
+    conversationImages: {
+      type: [imageSchema],
+      default: [],
+    },
   },
-});
+  { timestamps: true } // ✅ important
+);
 
 const GalleryItem = mongoose.model("GalleryItems", gallerySchema);
+
 export default GalleryItem;

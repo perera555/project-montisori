@@ -1,122 +1,58 @@
 import GalleryItem from "../models/gallery.js";
 
-/* ================= GET ================= */
+
+// ================= GET ALL =================
 export async function getGalleryItems(req, res) {
   try {
-    const items = await GalleryItem.find();
-    res.json({ list: items });
+    const galleries = await GalleryItem.find().sort({ createdAt: -1 });
+
+    res.json(galleries); // ✅ return array (fix .map error)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Error fetching gallery" });
   }
 }
 
-/* ================= SAVE ================= */
+// ================= SAVE =================
 export async function saveGalleryItem(req, res) {
   try {
     const { year, month, activityImages, conversationImages } = req.body;
 
-    if (!year || !month) {
-      return res.status(400).json({ error: "Year and month required" });
-    }
-
-    // ✅ STRONG FORMAT FIX
-    const formatImages = (imgs = []) =>
-      imgs
-        .filter((img) => img) // remove null/undefined
-        .map((img) => {
-          // old format (string)
-          if (typeof img === "string") {
-            return {
-              url: img,
-              title: "",
-              description: "",
-              createdAt: new Date(),
-            };
-          }
-
-          // ❗ IMPORTANT: ensure url exists
-          if (!img.url) {
-            console.warn("Skipping invalid image:", img);
-            return null;
-          }
-
-          return {
-            url: img.url,
-            title: img.title ? String(img.title) : "",
-            description: img.description
-              ? String(img.description)
-              : "",
-            createdAt: img.createdAt
-              ? new Date(img.createdAt)
-              : new Date(),
-          };
-        })
-        .filter(Boolean); // remove nulls
-
-    // 🔍 DEBUG (you can remove later)
-    console.log("Incoming activityImages:", activityImages);
-    console.log("Incoming conversationImages:", conversationImages);
-
-    let gallery = await GalleryItem.findOne({ year, month });
-
-    if (gallery) {
-      gallery.activityImages = formatImages(activityImages || []);
-      gallery.conversationImages = formatImages(
-        conversationImages || []
-      );
-    } else {
-      gallery = new GalleryItem({
-        year,
-        month,
-        activityImages: formatImages(activityImages || []),
-        conversationImages: formatImages(
-          conversationImages || []
-        ),
-      });
-    }
+    const gallery = new GalleryItem({
+      year,
+      month,
+      activityImages,
+      conversationImages,
+    });
 
     await gallery.save();
 
-    res.json({ message: "Saved successfully ✅" });
+    res.json(gallery);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Save failed ❌" });
+    res.status(500).json({ message: "Error saving gallery" });
   }
 }
 
-/* ================= DELETE ================= */
+// ================= DELETE IMAGE =================
 export async function deleteGalleryImage(req, res) {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Admin only 🚫" });
-    }
+    const { id, index } = req.params;
 
-    const { year, month, image, type } = req.body;
-
-    if (!year || !month || !image || !type) {
-      return res.status(400).json({ error: "Missing data" });
-    }
-
-    const gallery = await GalleryItem.findOne({ year, month });
+    const gallery = await GalleryItem.findById(id);
 
     if (!gallery) {
-      return res.status(404).json({ error: "Gallery not found" });
+      return res.status(404).json({ message: "Gallery not found" });
     }
 
-    if (type === "activity") {
-      gallery.activityImages = gallery.activityImages.filter(
-        (img) => img.url !== image
-      );
-    } else {
-      gallery.conversationImages = gallery.conversationImages.filter(
-        (img) => img.url !== image
-      );
-    }
+    // remove image
+    gallery.activityImages.splice(index, 1);
 
     await gallery.save();
 
-    res.json({ message: "Image deleted successfully ✅" });
+    res.json({ message: "Image deleted successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Delete failed ❌" });
+    console.error(err);
+    res.status(500).json({ message: "Delete failed" });
   }
 }
