@@ -19,24 +19,38 @@ const app = express();
 // ✅ Parse JSON
 app.use(express.json());
 
-// ✅ CORS (frontend connection)
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+/* ================= CORS FIX ================= */
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://project-montisori-frontend.vercel.app"
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow Postman / no origin
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("❌ CORS not allowed: " + origin));
+      }
+    },
+    credentials: true,
+  })
+);
 
 /* ================= JWT MIDDLEWARE ================= */
 
 app.use((req, res, next) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
-  // ✅ No token → continue
   if (!token) return next();
 
   try {
-    // ✅ FIXED: use env secret
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     req.user = decoded;
   } catch (err) {
     console.log("JWT ERROR:", err.message);
@@ -54,7 +68,8 @@ if (!connectionString) {
   process.exit(1);
 }
 
-mongoose.connect(connectionString)
+mongoose
+  .connect(connectionString)
   .then(() => {
     console.log("✅ Connected to MongoDB");
   })
@@ -70,9 +85,16 @@ app.use("/api/teachers", teachersRouter);
 app.use("/api/gallery", galleritemsRouter);
 app.use("/api/announcements", announcementsRouter);
 
+/* ================= HEALTH CHECK ================= */
+
+// optional but useful
+app.get("/", (req, res) => {
+  res.send("🚀 API is running...");
+});
+
 /* ================= SERVER ================= */
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
