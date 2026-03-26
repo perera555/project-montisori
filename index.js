@@ -9,6 +9,7 @@ import teachersRouter from "./routers/teacherRouter.js";
 import galleritemsRouter from "./routers/gallaryRouter.js";
 import announcementsRouter from "./routers/announcementRouter.js";
 import userRouter from "./routers/userRouter.js";
+import testimonialRouter from "./routers/testimonialRouter.js"; // ✅ FIXED NAME
 
 dotenv.config();
 
@@ -16,10 +17,9 @@ const app = express();
 
 /* ================= MIDDLEWARE ================= */
 
-// ✅ Parse JSON
 app.use(express.json());
 
-/* ================= CORS FIX ================= */
+/* ================= CORS ================= */
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -29,7 +29,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow Postman / no origin
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -42,7 +41,7 @@ app.use(
   })
 );
 
-/* ================= JWT MIDDLEWARE ================= */
+/* ================= JWT ================= */
 
 app.use((req, res, next) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
@@ -70,12 +69,8 @@ if (!connectionString) {
 
 mongoose
   .connect(connectionString)
-  .then(() => {
-    console.log("✅ Connected to MongoDB");
-  })
-  .catch((error) => {
-    console.log("❌ MongoDB Error:", error.message);
-  });
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((error) => console.log("❌ MongoDB Error:", error.message));
 
 /* ================= ROUTES ================= */
 
@@ -84,10 +79,16 @@ app.use("/api/students", studentsRouter);
 app.use("/api/teachers", teachersRouter);
 app.use("/api/gallery", galleritemsRouter);
 app.use("/api/announcements", announcementsRouter);
+app.use("/api/testimonials", testimonialRouter); // ✅ FIXED
 
-/* ================= HEALTH CHECK ================= */
+/* ================= TEST ROUTE (DEBUG) ================= */
 
-// optional but useful
+app.get("/api/testimonials/test", (req, res) => {
+  res.send("✅ Testimonials API working");
+});
+
+/* ================= ROOT ================= */
+
 app.get("/", (req, res) => {
   res.send("🚀 API is running...");
 });
